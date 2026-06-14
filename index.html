@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎲 AI 命运骰子 · 今日天启</title>
+  <style>
+    :root {
+      --bg: #0a0a1a;
+      --card: #12122a;
+      --accent: #7c4dff;
+      --accent2: #00e5ff;
+      --text: #e8e8ff;
+      --muted: #888;
+      --gold: #ffd700;
+      --glow: rgba(124, 77, 255, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+      background-image:
+        radial-gradient(ellipse at 20% 30%, rgba(124,77,255,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 70%, rgba(0,229,255,0.08) 0%, transparent 60%);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header .emoji { font-size: 48px; display: block; margin-bottom: 8px; }
+    header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #7c4dff, #00e5ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(124,77,255,0.2);
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    /* Dice */
+    .dice-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .die {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(145deg, #1e1e3f, #0d0d22);
+      border: 2px solid rgba(124,77,255,0.4);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.3s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .die.rolling {
+      animation: roll 0.5s ease-in-out;
+    }
+
+    @keyframes roll {
+      0%   { transform: rotate(0deg) scale(1); }
+      25%  { transform: rotate(-15deg) scale(0.9); }
+      50%  { transform: rotate(15deg) scale(1.1); }
+      75%  { transform: rotate(-10deg) scale(0.95); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    .die:hover { box-shadow: 0 4px 30px var(--glow); }
+
+    .die-label {
+      position: absolute;
+      bottom: 4px;
+      font-size: 9px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    /* Mood selector */
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .mood-btn {
+      background: rgba(124,77,255,0.08);
+      border: 1.5px solid rgba(124,77,255,0.2);
+      border-radius: 10px;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .mood-btn span {
+      display: block;
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .mood-btn:hover, .mood-btn.selected {
+      border-color: var(--accent);
+      background: rgba(124,77,255,0.18);
+      transform: translateY(-2px);
+    }
+
+    .mood-btn.selected {
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    /* Intention input */
+    input[type="text"] {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(124,77,255,0.2);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-top: 8px;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    /* Roll button */
+    .roll-btn {
+      width: 100%;
+      max-width: 480px;
+      padding: 16px;
+      background: linear-gradient(135deg, #7c4dff, #5c35cc);
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(124,77,255,0.4);
+      letter-spacing: 0.03em;
+      margin-bottom: 20px;
+    }
+    .roll-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(124,77,255,0.6);
+    }
+    .roll-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Result */
+    #result-card {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+      background: linear-gradient(145deg, #12122a, #0f0f24);
+      border: 1px solid rgba(255,215,0,0.3);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s ease-out;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .result-header .dice-sum {
+      background: linear-gradient(135deg, var(--gold), #ff9500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .result-header .result-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .result-header .result-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    #prophecy-text {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text);
+      white-space: pre-wrap;
+      min-height: 80px;
+    }
+
+    #prophecy-text.loading::after {
+      content: '▋';
+      animation: blink 0.8s infinite;
+      color: var(--accent2);
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .result-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      background: rgba(124,77,255,0.15);
+      border: 1px solid rgba(124,77,255,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--accent2);
+    }
+
+    .share-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .share-btn {
+      flex: 1;
+      padding: 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .share-btn:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-1px);
+    }
+
+    /* History */
+    #history-section {
+      width: 100%;
+      max-width: 480px;
+      display: none;
+    }
+
+    .history-title {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .history-item {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-left: 3px solid var(--accent);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .history-item .hi-dice { color: var(--gold); font-weight: 700; }
+
+    footer {
+      color: rgba(255,255,255,0.15);
+      font-size: 11px;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* Stars background */
+    .stars {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--dur, 3s) var(--delay, 0s) infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0.6; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<header>
+  <span class="emoji">🎲</span>
+  <h1>AI 命运骰子</h1>
+  <p>三颗骰子 × AI 解读 × 今日天启</p>
+</header>
+
+<!-- Dice -->
+<div class="card">
+  <div class="section-title">🎲 掷出你的命运</div>
+  <div class="dice-row">
+    <div class="die" id="die1" onclick="rollSingle(0)">
+      <span id="die1-face">⚀</span>
+      <span class="die-label">命</span>
+    </div>
+    <div class="die" id="die2" onclick="rollSingle(1)">
+      <span id="die2-face">⚁</span>
+      <span class="die-label">运</span>
+    </div>
+    <div class="die" id="die3" onclick="rollSingle(2)">
+      <span id="die3-face">⚂</span>
+      <span class="die-label">势</span>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:12px;color:var(--muted)">点击骰子单独重掷 · 或按下方按钮全部掷出</p>
+</div>
+
+<!-- Mood -->
+<div class="card">
+  <div class="section-title">🌀 今日心境</div>
+  <div class="mood-grid">
+    <div class="mood-btn selected" data-mood="焦虑" onclick="selectMood(this)">😰<span>焦虑</span></div>
+    <div class="mood-btn" data-mood="迷茫" onclick="selectMood(this)">🤔<span>迷茫</span></div>
+    <div class="mood-btn" data-mood="兴奋" onclick="selectMood(this)">🔥<span>兴奋</span></div>
+    <div class="mood-btn" data-mood="平静" onclick="selectMood(this)">🧘<span>平静</span></div>
+    <div class="mood-btn" data-mood="疲惫" onclick="selectMood(this)">😴<span>疲惫</span></div>
+    <div class="mood-btn" data-mood="愤怒" onclick="selectMood(this)">😤<span>愤怒</span></div>
+    <div class="mood-btn" data-mood="惊喜" onclick="selectMood(this)">😮<span>惊喜</span></div>
+    <div class="mood-btn" data-mood="孤独" onclick="selectMood(this)">🫙<span>孤独</span></div>
+  </div>
+</div>
+
+<!-- Intention -->
+<div class="card">
+  <div class="section-title">✍️ 此刻最想问的事（可选）</div>
+  <input type="text" id="intention" placeholder="例：今天要不要跟他表白？工作要换吗？" maxlength="40" />
+</div>
+
+<button class="roll-btn" id="roll-btn" onclick="rollAll()">🎲 掷骰子，求天启</button>
+
+<!-- Result -->
+<div id="result-card">
+  <div class="result-header">
+    <div class="dice-sum" id="result-sum">—</div>
+    <div>
+      <div class="result-title" id="result-title">命运数</div>
+      <div class="result-subtitle" id="result-date"></div>
+    </div>
+  </div>
+  <div id="prophecy-text"></div>
+  <div class="result-tags" id="result-tags"></div>
+  <div class="share-row">
+    <button class="share-btn" onclick="copyResult()">📋 复制天启</button>
+    <button class="share-btn" onclick="rollAll()">🎲 再掷一次</button>
+  </div>
+</div>
+
+<!-- History -->
+<div id="history-section">
+  <div class="history-title">📜 历史天启</div>
+  <div id="history-list"></div>
+</div>
+
+<footer>由 AI 命运骰子 生成 · 仅供娱乐 · 信则有不信则无 🎲</footer>
+
+<script>
+  // Stars
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*3}s;opacity:${Math.random()*0.5}`;
+    starsEl.appendChild(s);
+  }
+
+  const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  let diceValues = [1, 2, 3];
+  let selectedMood = '焦虑';
+  let history = JSON.parse(localStorage.getItem('fate-history') || '[]');
+
+  function selectMood(el) {
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedMood = el.dataset.mood;
+  }
+
+  function animateDie(idx, finalVal, callback) {
+    const el = document.getElementById(`die${idx+1}`);
+    const face = document.getElementById(`die${idx+1}-face`);
+    el.classList.add('rolling');
+    let ticks = 0;
+    const interval = setInterval(() => {
+      face.textContent = DICE_FACES[Math.floor(Math.random()*6)];
+      ticks++;
+      if (ticks > 8) {
+        clearInterval(interval);
+        el.classList.remove('rolling');
+        face.textContent = DICE_FACES[finalVal - 1];
+        diceValues[idx] = finalVal;
+        if (callback) callback();
+      }
+    }, 60);
+  }
+
+  function rollSingle(idx) {
+    const val = Math.floor(Math.random() * 6) + 1;
+    animateDie(idx, val);
+  }
+
+  function rollAll() {
+    const btn = document.getElementById('roll-btn');
+    btn.disabled = true;
+
+    const vals = [
+      Math.floor(Math.random()*6)+1,
+      Math.floor(Math.random()*6)+1,
+      Math.floor(Math.random()*6)+1
+    ];
+
+    let done = 0;
+    for (let i = 0; i < 3; i++) {
+      animateDie(i, vals[i], () => {
+        done++;
+        if (done === 3) {
+          setTimeout(() => fetchProphecy(vals), 300);
+        }
+      });
+    }
+  }
+
+  function getDateStr() {
+    const d = new Date();
+    return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]}`;
+  }
+
+  async function fetchProphecy(vals) {
+    const sum = vals.reduce((a,b)=>a+b,0);
+    const intention = document.getElementById('intention').value.trim();
+
+    const resultCard = document.getElementById('result-card');
+    const prophecyEl = document.getElementById('prophecy-text');
+    const sumEl = document.getElementById('result-sum');
+    const titleEl = document.getElementById('result-title');
+    const dateEl = document.getElementById('result-date');
+    const tagsEl = document.getElementById('result-tags');
+
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    sumEl.textContent = sum;
+    titleEl.textContent = getFateTitle(sum);
+    dateEl.textContent = getDateStr();
+    tagsEl.innerHTML = '';
+    prophecyEl.textContent = '';
+    prophecyEl.classList.add('loading');
+
+    const diceLabels = ['命骰','运骰','势骰'];
+    const diceDesc = vals.map((v,i) => `${diceLabels[i]}=${v}`).join('，');
+    
+    const prompt = `你是一个神秘又有趣的AI命运解读师，风格介于古典玄学与现代毒舌之间，带点幽默但有实际洞察力。
+
+用户今日掷出三颗命运骰子：命骰=${vals[0]}、运骰=${vals[1]}、势骰=${vals[2]}，总点数=${sum}。
+今日心境：${selectedMood}。
+${intention ? `最想问的事：「${intention}」` : ''}
+今天是：${getDateStr()}。
+
+请根据以上信息给出一段命运天启，要求：
+1. 开头一句神秘引言（可以用古诗/玄学口吻，15字内）
+2. 分三段解读：命（${vals[0]}点）→ 今日根基，运（${vals[1]}点）→ 外部机遇，势（${vals[2]}点）→ 行动节奏
+3. 如果用户有问题，给出一个直接的建议（不要模棱两可）
+4. 最后一句"今日金句"（犀利一点，20字内）
+5. 全文200-250字，不要用markdown格式，不要用星号加粗，直接输出文字
+6. 语气：神秘但不装神弄鬼，偶尔带点毒舌幽默感`;
+
+    try {
+      const resp = await fetch('https://api.aisa.one/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer sk-d2n3PIPWBOc3VTgqHuqvtmTaSZ5JtolHBnUAaUrAZgTjst41'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-mini',
+          messages: [{ role: 'user', content: prompt }],
+          stream: true,
+          max_tokens: 400
+        })
+      });
+
+      prophecyEl.classList.remove('loading');
+      
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content || '';
+              fullText += delta;
+              prophecyEl.textContent = fullText;
+            } catch {}
+          }
+        }
+      }
+
+      // Generate tags
+      const tags = generateTags(vals, sum, selectedMood);
+      tagsEl.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
+
+      // Save to history
+      const entry = {
+        date: getDateStr(),
+        dice: vals,
+        sum,
+        mood: selectedMood,
+        intention,
+        preview: fullText.substring(0, 60) + '...'
+      };
+      history.unshift(entry);
+      if (history.length > 5) history = history.slice(0, 5);
+      localStorage.setItem('fate-history', JSON.stringify(history));
+      renderHistory();
+
+    } catch(e) {
+      prophecyEl.classList.remove('loading');
+      prophecyEl.textContent = '⚠️ 天机暂时无法获取，宇宙信号不稳定。请稍后再试。';
+    }
+
+    document.getElementById('roll-btn').disabled = false;
+  }
+
+  function getFateTitle(sum) {
+    const titles = {
+      3: '极阴之局', 4: '困境待机', 5: '蛰伏积能',
+      6: '暗流涌动', 7: '平衡之势', 8: '蓄势待发',
+      9: '破局前夕', 10: '中正之道', 11: '运势上扬',
+      12: '峰回路转', 13: '强运奔涌', 14: '天时地利',
+      15: '大势所趋', 16: '极阳之局', 17: '超频共振', 18: '天命全开'
+    };
+    return titles[sum] || '命运玄机';
+  }
+
+  function generateTags(vals, sum, mood) {
+    const tags = [];
+    if (sum >= 14) tags.push('🔥 强运日');
+    else if (sum >= 10) tags.push('✨ 顺势日');
+    else if (sum >= 7) tags.push('⚖️ 平衡日');
+    else tags.push('🌑 蛰伏日');
+
+    if (vals[0] === 6) tags.push('💎 命力全开');
+    if (vals[1] === 6) tags.push('🎯 机遇爆发');
+    if (vals[2] === 6) tags.push('⚡ 势如破竹');
+    if (vals.every(v => v === vals[0])) tags.push('🎰 三连同点');
+
+    const moodTags = { '焦虑':'🌀 焦虑转化', '迷茫':'🔍 方向待明', '兴奋':'🚀 能量爆棚', '平静':'🧘 平静如水', '疲惫':'😴 休养生息', '愤怒':'🌋 火力全开', '惊喜':'🎉 好事临门', '孤独':'🌙 独行侠' };
+    if (moodTags[mood]) tags.push(moodTags[mood]);
+
+    return tags.slice(0, 4);
+  }
+
+  function copyResult() {
+    const text = document.getElementById('prophecy-text').textContent;
+    const sum = document.getElementById('result-sum').textContent;
+    const title = document.getElementById('result-title').textContent;
+    const full = `🎲 AI命运骰子 · ${title}\n总点数：${sum}\n\n${text}\n\nhttps://seanliii.github.io/ai-fate-dice/`;
+    navigator.clipboard.writeText(full).then(() => {
+      const btn = event.target;
+      btn.textContent = '✅ 已复制';
+      setTimeout(() => btn.textContent = '📋 复制天启', 2000);
+    });
+  }
+
+  function renderHistory() {
+    const section = document.getElementById('history-section');
+    const list = document.getElementById('history-list');
+    if (history.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    list.innerHTML = history.map(h => `
+      <div class="history-item">
+        <span class="hi-dice">🎲 ${h.dice.join('+')}=${h.sum}</span> · ${h.mood} · ${h.date}<br>
+        <span style="font-size:12px">${h.preview}</span>
+      </div>
+    `).join('');
+  }
+
+  // Init
+  renderHistory();
+</script>
+</body>
+</html>
